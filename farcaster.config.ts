@@ -9,14 +9,14 @@ const ROOT_URL =
  */
 export const farcasterConfig = {
   accountAssociation: {
-    header: "",
-    payload: "",
-    signature: ""
+    header: "eyJmaWQiOjE2MzkwNDcsInR5cGUiOiJhdXRoIiwia2V5IjoiMHgxNzNmN2ZDNUIzQmI1NGI2NTYzNTc3RkE4ZTVhQzBCRGY5MDdGMWJDIn0",
+    payload: "eyJkb21haW4iOiJiYXNlLWdhbWUwLnZlcmNlbC5hcHAifQ",
+    signature: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEHdDiXQ2YINOvbpU6W1s9W-o8Hi63frVVS8OzcnVQiMq1oAN8JGA7m9bmVhE_9pSR-dTttxNkb1SI6HSj60J6XXGwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
   },
   miniapp: {
     version: "1",
-    name: "Cubey", 
-    subtitle: "Your AI Ad Companion", 
+    name: "Cubey",
+    subtitle: "Your AI Ad Companion",
     description: "Ads",
     screenshotUrls: [`${ROOT_URL}/screenshot-portrait.png`],
     iconUrl: `${ROOT_URL}/blue-icon.png`,
@@ -26,7 +26,7 @@ export const farcasterConfig = {
     webhookUrl: `${ROOT_URL}/api/webhook`,
     primaryCategory: "social",
     tags: ["marketing", "ads", "quickstart", "waitlist"],
-    heroImageUrl: `${ROOT_URL}/blue-hero.png`, 
+    heroImageUrl: `${ROOT_URL}/blue-hero.png`,
     tagline: "",
     ogTitle: "",
     ogDescription: "",

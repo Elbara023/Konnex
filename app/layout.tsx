@@ -9,6 +9,9 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: farcasterConfig.miniapp.name,
     description: farcasterConfig.miniapp.description,
+    icons: {
+      icon: "/dragon-head-logo.png",
+    },
     other: {
       "base:app_id": "69a15d92dce51e894f9727a7",
       "fc:frame": JSON.stringify({

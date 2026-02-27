@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="base:app_id" content="69a15d92dce51e894f9727a7" />
   <title>Golden Dragon Snake</title>
+  <link rel="icon" type="image/png" href="/dragon-head-logo.png" />
   <style>
     :root {
       --bg-1: #09060f;
@@ -142,6 +143,22 @@
       letter-spacing: 0.4px;
       color: var(--gold-2);
       text-shadow: 0 0 16px rgba(255, 203, 64, 0.45);
+    }
+
+    .title-wrap {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+
+    .title-logo {
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      border: 1px solid rgba(255, 214, 112, 0.45);
+      object-fit: cover;
+      box-shadow: 0 0 18px rgba(255, 160, 50, 0.45);
     }
 
     .subtitle {
@@ -467,7 +484,10 @@
 
       <div class="overlay" id="startOverlay">
         <div class="card" id="startPanel">
-          <h1 class="title">Golden Dragon Snake</h1>
+          <div class="title-wrap">
+            <img class="title-logo" src="/dragon-head-logo.png" alt="Dragon head logo" />
+            <h1 class="title">Golden Dragon Snake</h1>
+          </div>
           <p class="subtitle">
             Collect treasures, speed up, and grow your balance with free transactions.
             Check in daily and climb into the top-10 dragon legends.

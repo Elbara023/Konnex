@@ -13,7 +13,7 @@ export async function generateMetadata(): Promise<Metadata> {
       icon: "/dragon-head-logo.png",
     },
     other: {
-      "base:app_id": "69a15d92dce51e894f9727a7",
+      "base:app_id": "69a19452991116aebf36cab4",
       "fc:frame": JSON.stringify({
         version: farcasterConfig.miniapp.version,
         imageUrl: farcasterConfig.miniapp.heroImageUrl,

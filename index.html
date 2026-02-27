@@ -561,12 +561,33 @@
     // Частицы: искры/огонь/монеты (для поедания и pop-up эффектов)
     const particles = [];
 
-    treasureLogo.src = "./public/food-logo.png";
-    treasureLogo.onload = () => { treasureLogoLoaded = true; };
-    treasureLogo.onerror = () => { treasureLogoLoaded = false; };
-    bonusLogo.src = "./public/bonus-logo.svg";
-    bonusLogo.onload = () => { bonusLogoLoaded = true; };
-    bonusLogo.onerror = () => { bonusLogoLoaded = false; };
+    function loadImageWithFallback(img, candidates, onLoaded, onFailed) {
+      let idx = 0;
+      img.onload = () => onLoaded();
+      img.onerror = () => {
+        idx += 1;
+        if (idx >= candidates.length) {
+          onFailed();
+          return;
+        }
+        img.src = candidates[idx];
+      };
+      img.src = candidates[idx];
+    }
+
+    // Next.js serves files from /public as "/file", while local static runs may need "./public/file".
+    loadImageWithFallback(
+      treasureLogo,
+      ["/food-logo.png", "./public/food-logo.png"],
+      () => { treasureLogoLoaded = true; },
+      () => { treasureLogoLoaded = false; }
+    );
+    loadImageWithFallback(
+      bonusLogo,
+      ["/bonus-logo.svg", "./public/bonus-logo.svg"],
+      () => { bonusLogoLoaded = true; },
+      () => { bonusLogoLoaded = false; }
+    );
 
     // ============================================================
     //                          Аудио

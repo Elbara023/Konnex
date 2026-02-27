@@ -258,6 +258,18 @@
       background: rgba(255, 199, 86, 0.07);
     }
 
+    .daily-claim {
+      margin-top: 10px;
+      width: 100%;
+    }
+
+    .daily-claim:disabled {
+      cursor: not-allowed;
+      filter: grayscale(0.35) brightness(0.86);
+      box-shadow: none;
+      opacity: 0.82;
+    }
+
     #gameOverPanel input {
       width: 100%;
       margin: 8px 0 10px;
@@ -383,6 +395,34 @@
       touch-action: manipulation;
     }
 
+    body.mobile-immersive {
+      padding: 0;
+      overflow: hidden;
+    }
+
+    .app.mobile-immersive {
+      width: 100vw;
+      min-height: 100dvh;
+      grid-template-columns: 1fr;
+      gap: 0;
+    }
+
+    .app.mobile-immersive .side {
+      display: none;
+    }
+
+    .app.mobile-immersive .left-panel {
+      border: 0;
+      border-radius: 0;
+      padding: 8px;
+      min-height: 100dvh;
+    }
+
+    .app.mobile-immersive .overlay {
+      inset: 8px;
+      border-radius: 10px;
+    }
+
     @media (max-width: 930px) {
       .app { grid-template-columns: 1fr; }
       .side { order: -1; }
@@ -473,6 +513,8 @@
         <span class="pill">Streak Bonus</span>
         <span class="pill">Game Reward</span>
       </div>
+      <button id="dailyClaimBtn" class="daily-claim">Claim Daily Free Transaction</button>
+      <div class="small" id="dailyClaimHint">Claim available now.</div>
       <h3 style="margin-top: 16px;">Dragon Legends</h3>
       <ul class="leaderboard" id="sideLeaderboard"></ul>
     </aside>
@@ -530,10 +572,13 @@
     const sideBalance = document.getElementById("sideBalance");
     const entryBonusText = document.getElementById("entryBonusText");
     const nextTxTimer = document.getElementById("nextTxTimer");
+    const dailyClaimBtn = document.getElementById("dailyClaimBtn");
+    const dailyClaimHint = document.getElementById("dailyClaimHint");
     const fullscreenBtn = document.getElementById("fullscreenBtn");
     const touchControls = document.getElementById("touchControls");
     const touchPauseBtn = document.getElementById("touchPauseBtn");
     const touchFullscreenBtn = document.getElementById("touchFullscreenBtn");
+    const appRoot = document.querySelector(".app");
 
     // ============================================================
     //                        Игровое состояние
@@ -554,6 +599,7 @@
     let paused = false;
     let gameOver = false;
     let inGame = false;
+    let pseudoFullscreen = false;
 
     let lastTickTime = 0;
     let renderHandle = 0;
@@ -688,40 +734,69 @@
       return Math.round((B - A) / 86400000);
     }
 
-    function checkDailyFreeTransaction() {
+    function getDailyClaimStatus() {
       const now = new Date();
       const todayKey = formatDateKey(now);
       const savedDateKey = localStorage.getItem(STORAGE_KEYS.dailyDate);
       let streak = Number(localStorage.getItem(STORAGE_KEYS.dailyStreak) || 0);
-
-      if (savedDateKey === todayKey) return;
 
       if (!savedDateKey) {
         streak = 1;
       } else {
         const saved = new Date(savedDateKey + "T00:00:00");
         const diff = daysDiff(saved, now);
-        if (diff === 1) streak += 1;
-        else streak = 1;
+        if (diff === 0) {
+          // Already claimed today; streak remains saved.
+        } else if (diff === 1) {
+          streak += 1;
+        } else {
+          streak = 1;
+        }
       }
 
-      // Бонус по условиям: день 1 => 0%, день 2 => +20%, день 3+ => +50%
       let bonusPct = 0;
       if (streak === 2) bonusPct = 0.2;
       if (streak >= 3) bonusPct = 0.5;
-
       const baseReward = 100;
       const reward = Math.round(baseReward * (1 + bonusPct));
+      const canClaim = savedDateKey !== todayKey;
 
-      addBalance(reward);
+      return { canClaim, streak, reward };
+    }
+
+    function claimDailyFreeTransaction() {
+      const now = new Date();
+      const todayKey = formatDateKey(now);
+      const status = getDailyClaimStatus();
+
+      if (!status.canClaim) {
+        showPopup("Daily transaction already claimed today.", 1800);
+        return;
+      }
+
+      addBalance(status.reward);
       localStorage.setItem(STORAGE_KEYS.dailyDate, todayKey);
-      localStorage.setItem(STORAGE_KEYS.dailyStreak, String(streak));
+      localStorage.setItem(STORAGE_KEYS.dailyStreak, String(status.streak));
 
       showPopup(
-        "Daily free transaction! +" + reward + " coins (streak: " + streak + ")",
+        "Daily free transaction! +" + status.reward + " coins (streak: " + status.streak + ")",
         3600
       );
       spawnCoinRain(24);
+      refreshBalanceUI();
+      updateDailyClaimUI();
+    }
+
+    function updateDailyClaimUI() {
+      const status = getDailyClaimStatus();
+      dailyClaimBtn.disabled = !status.canClaim;
+      if (status.canClaim) {
+        dailyClaimBtn.textContent = "Claim Daily Free Transaction (+" + status.reward + ")";
+        dailyClaimHint.textContent = "Streak day " + status.streak + ". Claim now.";
+      } else {
+        dailyClaimBtn.textContent = "Daily Claimed";
+        dailyClaimHint.textContent = "Come back tomorrow for next free transaction.";
+      }
     }
 
     function updateNextTransactionTimer() {
@@ -757,6 +832,43 @@
         pop.style.transform = "translateY(-12px) scale(0.97)";
       }, life);
       setTimeout(() => pop.remove(), life + 420);
+    }
+
+    function isNativeFullscreenActive() {
+      return Boolean(document.fullscreenElement || document.webkitFullscreenElement);
+    }
+
+    function setPseudoFullscreenState(enabled) {
+      pseudoFullscreen = enabled;
+      document.body.classList.toggle("mobile-immersive", enabled);
+      if (appRoot) appRoot.classList.toggle("mobile-immersive", enabled);
+      if (enabled) window.scrollTo(0, 0);
+    }
+
+    async function toggleFullscreenMode() {
+      const rootEl = document.documentElement;
+      const requestFn = rootEl.requestFullscreen || rootEl.webkitRequestFullscreen;
+      const exitFn = document.exitFullscreen || document.webkitExitFullscreen;
+
+      // Try native fullscreen first.
+      if (requestFn) {
+        try {
+          if (!isNativeFullscreenActive()) {
+            await requestFn.call(rootEl);
+            return;
+          }
+          if (exitFn) {
+            await exitFn.call(document);
+            return;
+          }
+        } catch (_) {
+          // Continue to pseudo fullscreen fallback.
+        }
+      }
+
+      // Fallback for iOS browsers where Fullscreen API may be unavailable.
+      setPseudoFullscreenState(!pseudoFullscreen);
+      showPopup(pseudoFullscreen ? "Fullscreen enabled" : "Fullscreen disabled", 1200);
     }
 
     function spawnCoinRain(count = 14) {
@@ -1473,6 +1585,10 @@
       startGame();
     });
 
+    dailyClaimBtn.addEventListener("click", () => {
+      claimDailyFreeTransaction();
+    });
+
     restartBtn.addEventListener("click", () => {
       startGame();
     });
@@ -1482,17 +1598,7 @@
       startGame();
     });
 
-    fullscreenBtn.addEventListener("click", async () => {
-      try {
-        if (!document.fullscreenElement) {
-          await document.documentElement.requestFullscreen();
-        } else {
-          await document.exitFullscreen();
-        }
-      } catch (_) {
-        showPopup("Fullscreen mode is not available in this browser", 2000);
-      }
-    });
+    fullscreenBtn.addEventListener("click", toggleFullscreenMode);
 
     touchControls.addEventListener("pointerdown", (e) => {
       const target = e.target;
@@ -1514,15 +1620,11 @@
       showPopup(paused ? "Pause enabled" : "Pause disabled", 1000);
     });
 
-    touchFullscreenBtn.addEventListener("click", async () => {
-      try {
-        if (!document.fullscreenElement) {
-          await document.documentElement.requestFullscreen();
-        } else {
-          await document.exitFullscreen();
-        }
-      } catch (_) {
-        showPopup("Fullscreen mode is not available in this browser", 2000);
+    touchFullscreenBtn.addEventListener("click", toggleFullscreenMode);
+
+    document.addEventListener("fullscreenchange", () => {
+      if (isNativeFullscreenActive()) {
+        setPseudoFullscreenState(false);
       }
     });
 
@@ -1544,10 +1646,13 @@
 
       renderLeaderboardEverywhere();
       refreshBalanceUI();
-      checkDailyFreeTransaction();
+      updateDailyClaimUI();
       refreshBalanceUI();
       updateNextTransactionTimer();
-      setInterval(updateNextTransactionTimer, 1000);
+      setInterval(() => {
+        updateNextTransactionTimer();
+        updateDailyClaimUI();
+      }, 1000);
 
       // Рисуем начальное состояние поля до старта
       dragon = [

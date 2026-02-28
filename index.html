@@ -644,6 +644,7 @@
     let inGame = false;
     let pseudoFullscreen = false;
     const claimTxPending = {
+      daily: false,
       streak: false,
       game: false
     };
@@ -863,20 +864,29 @@
       const payload = "gdz|" + claimType + "|" + rewardAmount + "|" + Date.now();
       const data = "0x" + bytesToHex(new TextEncoder().encode(payload));
 
-      const callId = await provider.request({
-        method: "wallet_sendCalls",
-        params: [{
-          version: "2.0.0",
-          chainId: "0x2105",
-          from,
-          calls: [{ to: from, value: "0x0", data }],
-          capabilities: {
-            paymasterService: {
-              url: paymasterUrl
+      let callId = null;
+      try {
+        callId = await provider.request({
+          method: "wallet_sendCalls",
+          params: [{
+            version: "2.0.0",
+            chainId: "0x2105",
+            from,
+            calls: [{ to: from, value: "0x0", data }],
+            capabilities: {
+              paymasterService: {
+                url: paymasterUrl
+              }
             }
-          }
-        }]
-      });
+          }]
+        });
+      } catch (err) {
+        const message = normalizeErrorMessage(err).toLowerCase();
+        if (message.includes("wallet_sendcalls") || message.includes("method not found")) {
+          throw new Error("Your wallet build does not support free transaction calls yet.");
+        }
+        throw err;
+      }
 
       if (!callId) {
         throw new Error("wallet_sendCalls did not return a call ID.");
@@ -957,7 +967,7 @@
       return { canClaim, streak, reward };
     }
 
-    function claimDailyFreeTransaction() {
+    async function claimDailyFreeTransaction() {
       const now = new Date();
       const todayKey = formatDateKey(now);
       const status = getDailyClaimStatus();
@@ -966,26 +976,45 @@
         showPopup("Daily transaction already claimed today.", 1800);
         return;
       }
+      if (claimTxPending.daily) return;
 
-      addBalance(status.reward);
-      localStorage.setItem(STORAGE_KEYS.dailyDate, todayKey);
-      localStorage.setItem(STORAGE_KEYS.dailyStreak, String(status.streak));
-
-      showPopup(
-        "Daily free transaction! +" + status.reward + " coins (streak: " + status.streak + ")",
-        3600
-      );
-      spawnCoinRain(24);
-      refreshBalanceUI();
+      claimTxPending.daily = true;
       updateDailyClaimUI();
+      showPopup("Confirm free Base transaction for daily claim...", 2600);
+
+      try {
+        const txHash = await sendFreeClaimTransaction("daily_claim", status.reward);
+        addBalance(status.reward);
+        localStorage.setItem(STORAGE_KEYS.dailyDate, todayKey);
+        localStorage.setItem(STORAGE_KEYS.dailyStreak, String(status.streak));
+        showPopup(
+          "Daily free transaction confirmed! +" + status.reward + " coins (streak: " + status.streak + ")",
+          3600
+        );
+        if (txHash) {
+          showPopup("Base tx: " + txHash.slice(0, 10) + "..." + txHash.slice(-8), 2600);
+        }
+        spawnCoinRain(24);
+        refreshBalanceUI();
+      } catch (err) {
+        showPopup("Free Base transaction failed: " + normalizeErrorMessage(err), 3600);
+      } finally {
+        claimTxPending.daily = false;
+        updateDailyClaimUI();
+      }
     }
 
     function updateDailyClaimUI() {
       const status = getDailyClaimStatus();
-      dailyClaimBtn.disabled = !status.canClaim;
+      dailyClaimBtn.disabled = !status.canClaim || claimTxPending.daily;
+      if (claimTxPending.daily) {
+        dailyClaimBtn.textContent = "Confirming Base Transaction...";
+        dailyClaimHint.textContent = "Approve in wallet and wait for Base confirmation.";
+        return;
+      }
       if (status.canClaim) {
         dailyClaimBtn.textContent = "Claim Daily Free Transaction (+" + status.reward + ")";
-        dailyClaimHint.textContent = "Streak day " + status.streak + ". Claim now.";
+        dailyClaimHint.textContent = "Streak day " + status.streak + ". Claim now (free Base tx).";
       } else {
         dailyClaimBtn.textContent = "Daily Claimed";
         dailyClaimHint.textContent = "Come back tomorrow for next free transaction.";

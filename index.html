@@ -287,6 +287,18 @@
       opacity: 0.82;
     }
 
+    .reward-claim {
+      margin-top: 8px;
+      width: 100%;
+    }
+
+    .reward-claim:disabled {
+      cursor: not-allowed;
+      filter: grayscale(0.35) brightness(0.86);
+      box-shadow: none;
+      opacity: 0.82;
+    }
+
     #gameOverPanel input {
       width: 100%;
       margin: 8px 0 10px;
@@ -535,6 +547,10 @@
       </div>
       <button id="dailyClaimBtn" class="daily-claim">Claim Daily Free Transaction</button>
       <div class="small" id="dailyClaimHint">Claim available now.</div>
+      <button id="streakClaimBtn" class="reward-claim">Claim Streak Bonus</button>
+      <div class="small" id="streakClaimHint">Reach day 2 streak to unlock.</div>
+      <button id="gameRewardBtn" class="reward-claim">Claim Game Reward</button>
+      <div class="small" id="gameRewardHint">Finish a run to unlock.</div>
       <h3 style="margin-top: 16px;">Dragon Legends</h3>
       <ul class="leaderboard" id="sideLeaderboard"></ul>
     </aside>
@@ -559,7 +575,9 @@
       leaderboard: "gdz_leaderboard_v1",
       balance: "gdz_balance_v1",
       dailyDate: "gdz_daily_last_date_v1",
-      dailyStreak: "gdz_daily_streak_v1"
+      dailyStreak: "gdz_daily_streak_v1",
+      streakClaimDate: "gdz_streak_claim_date_v1",
+      pendingGameReward: "gdz_pending_game_reward_v1"
     };
 
     // ============================================================
@@ -594,6 +612,10 @@
     const nextTxTimer = document.getElementById("nextTxTimer");
     const dailyClaimBtn = document.getElementById("dailyClaimBtn");
     const dailyClaimHint = document.getElementById("dailyClaimHint");
+    const streakClaimBtn = document.getElementById("streakClaimBtn");
+    const streakClaimHint = document.getElementById("streakClaimHint");
+    const gameRewardBtn = document.getElementById("gameRewardBtn");
+    const gameRewardHint = document.getElementById("gameRewardHint");
     const fullscreenBtn = document.getElementById("fullscreenBtn");
     const touchControls = document.getElementById("touchControls");
     const touchPauseBtn = document.getElementById("touchPauseBtn");
@@ -712,6 +734,15 @@
       setBalance(getBalance() + delta);
     }
 
+    function getPendingGameReward() {
+      return Number(localStorage.getItem(STORAGE_KEYS.pendingGameReward) || 0);
+    }
+
+    function setPendingGameReward(val) {
+      localStorage.setItem(STORAGE_KEYS.pendingGameReward, String(Math.max(0, Math.floor(val))));
+      updateGameRewardUI();
+    }
+
     function getLeaderboard() {
       try {
         const parsed = JSON.parse(localStorage.getItem(STORAGE_KEYS.leaderboard) || "[]");
@@ -816,6 +847,76 @@
       } else {
         dailyClaimBtn.textContent = "Daily Claimed";
         dailyClaimHint.textContent = "Come back tomorrow for next free transaction.";
+      }
+    }
+
+    function getStreakBonusStatus() {
+      const todayKey = formatDateKey(new Date());
+      const savedDateKey = localStorage.getItem(STORAGE_KEYS.dailyDate);
+      const streak = Number(localStorage.getItem(STORAGE_KEYS.dailyStreak) || 0);
+      const streakClaimDate = localStorage.getItem(STORAGE_KEYS.streakClaimDate);
+
+      const dailyClaimedToday = savedDateKey === todayKey;
+      const canClaim = dailyClaimedToday && streak >= 2 && streakClaimDate !== todayKey;
+      const bonus = streak >= 3 ? 50 : streak === 2 ? 20 : 0;
+
+      return { canClaim, bonus, streak };
+    }
+
+    function claimStreakBonus() {
+      const status = getStreakBonusStatus();
+      if (!status.canClaim) {
+        showPopup("Streak bonus is not available right now.", 1600);
+        return;
+      }
+
+      const todayKey = formatDateKey(new Date());
+      addBalance(status.bonus);
+      localStorage.setItem(STORAGE_KEYS.streakClaimDate, todayKey);
+      showPopup("Streak bonus claimed! +" + status.bonus + " coins", 2200);
+      spawnCoinRain(10);
+      refreshBalanceUI();
+      updateStreakBonusUI();
+    }
+
+    function updateStreakBonusUI() {
+      const status = getStreakBonusStatus();
+      streakClaimBtn.disabled = !status.canClaim;
+      if (status.canClaim) {
+        streakClaimBtn.textContent = "Claim Streak Bonus (+" + status.bonus + ")";
+        streakClaimHint.textContent = "Streak day " + status.streak + " bonus ready.";
+      } else if (status.streak < 2) {
+        streakClaimBtn.textContent = "Claim Streak Bonus";
+        streakClaimHint.textContent = "Reach day 2 streak to unlock.";
+      } else {
+        streakClaimBtn.textContent = "Streak Bonus Claimed";
+        streakClaimHint.textContent = "Already claimed today.";
+      }
+    }
+
+    function claimGameReward() {
+      const reward = getPendingGameReward();
+      if (reward <= 0) {
+        showPopup("No game reward available yet.", 1600);
+        return;
+      }
+
+      addBalance(reward);
+      setPendingGameReward(0);
+      showPopup("Game reward claimed! +" + reward + " coins", 2200);
+      spawnCoinRain(10);
+      refreshBalanceUI();
+    }
+
+    function updateGameRewardUI() {
+      const reward = getPendingGameReward();
+      gameRewardBtn.disabled = reward <= 0;
+      if (reward > 0) {
+        gameRewardBtn.textContent = "Claim Game Reward (+" + reward + ")";
+        gameRewardHint.textContent = "Reward ready from your last run.";
+      } else {
+        gameRewardBtn.textContent = "Claim Game Reward";
+        gameRewardHint.textContent = "Finish a run to unlock.";
       }
     }
 
@@ -1041,10 +1142,10 @@
       pauseValueEl.textContent = "No";
       deathSound();
 
-      // Пост-игровая бесплатная транзакция: +10..50 в зависимости от длины дракона
+      // Prepare post-game reward for manual claim button.
       const reward = Math.max(10, Math.min(50, 10 + dragon.length * 2));
-      addBalance(reward);
-      showPopup("Free transaction for this run! +" + reward + " coins", 2600);
+      setPendingGameReward(getPendingGameReward() + reward);
+      showPopup("Game reward ready! Claim +" + reward + " coins", 2600);
       spawnCoinRain(12);
 
       finalScoreText.textContent = "Final score: " + score;
@@ -1608,6 +1709,12 @@
     dailyClaimBtn.addEventListener("click", () => {
       claimDailyFreeTransaction();
     });
+    streakClaimBtn.addEventListener("click", () => {
+      claimStreakBonus();
+    });
+    gameRewardBtn.addEventListener("click", () => {
+      claimGameReward();
+    });
 
     restartBtn.addEventListener("click", () => {
       startGame();
@@ -1667,11 +1774,15 @@
       renderLeaderboardEverywhere();
       refreshBalanceUI();
       updateDailyClaimUI();
+      updateStreakBonusUI();
+      updateGameRewardUI();
       refreshBalanceUI();
       updateNextTransactionTimer();
       setInterval(() => {
         updateNextTransactionTimer();
         updateDailyClaimUI();
+        updateStreakBonusUI();
+        updateGameRewardUI();
       }, 1000);
 
       // Рисуем начальное состояние поля до старта

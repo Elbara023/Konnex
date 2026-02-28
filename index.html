@@ -861,9 +861,6 @@
 
       await ensureBaseMainnet(provider);
 
-      const payload = "gdz|" + claimType + "|" + rewardAmount + "|" + Date.now();
-      const data = "0x" + bytesToHex(new TextEncoder().encode(payload));
-
       let callId = null;
       try {
         callId = await provider.request({
@@ -872,7 +869,8 @@
             version: "2.0.0",
             chainId: "0x2105",
             from,
-            calls: [{ to: from, value: "0x0", data }],
+            // Keep sponsored call minimal to maximize paymaster policy compatibility.
+            calls: [{ to: from, value: "0x0" }],
             capabilities: {
               paymasterService: {
                 url: paymasterUrl

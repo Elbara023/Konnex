@@ -648,6 +648,9 @@
       streak: false,
       game: false
     };
+    // Fixed target for sponsored no-op call on Base mainnet (WETH predeploy).
+    // Using a stable target is more compatible with paymaster allowlists than "to: userAddress".
+    const SPONSORED_CALL_TARGET = "0x4200000000000000000000000000000000000006";
     let resolvedPaymasterUrl = "";
 
     let lastTickTime = 0;
@@ -748,14 +751,6 @@
     function setPendingGameReward(val) {
       localStorage.setItem(STORAGE_KEYS.pendingGameReward, String(Math.max(0, Math.floor(val))));
       updateGameRewardUI();
-    }
-
-    function bytesToHex(bytes) {
-      let out = "";
-      for (let i = 0; i < bytes.length; i++) {
-        out += bytes[i].toString(16).padStart(2, "0");
-      }
-      return out;
     }
 
     function normalizeErrorMessage(err) {
@@ -869,8 +864,10 @@
             version: "2.0.0",
             chainId: "0x2105",
             from,
-            // Keep sponsored call minimal to maximize paymaster policy compatibility.
-            calls: [{ to: from, value: "0x0" }],
+            atomicRequired: false,
+            // Fixed-call sponsorship target avoids per-user allowlist failures.
+            // "deposit()" on WETH with value=0 is a harmless no-op and should succeed.
+            calls: [{ to: SPONSORED_CALL_TARGET, value: "0x0", data: "0xd0e30db0" }],
             capabilities: {
               paymasterService: {
                 url: paymasterUrl
@@ -882,6 +879,9 @@
         const message = normalizeErrorMessage(err).toLowerCase();
         if (message.includes("wallet_sendcalls") || message.includes("method not found")) {
           throw new Error("Your wallet build does not support free transaction calls yet.");
+        }
+        if (message.includes("enough funds") || message.includes("insufficient")) {
+          throw new Error("Paymaster rejected sponsorship. In CDP allowlist add 0x4200000000000000000000000000000000000006 and keep limits above zero.");
         }
         throw err;
       }

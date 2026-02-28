@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="base:app_id" content="69a19452991116aebf36cab4" />
+  <meta name="base:paymaster_url" content="" />
   <title>Golden Dragon Snake</title>
   <link rel="icon" type="image/png" href="/dragon-head-logo.png" />
   <style>
@@ -642,6 +643,11 @@
     let gameOver = false;
     let inGame = false;
     let pseudoFullscreen = false;
+    const claimTxPending = {
+      streak: false,
+      game: false
+    };
+    let resolvedPaymasterUrl = "";
 
     let lastTickTime = 0;
     let renderHandle = 0;
@@ -741,6 +747,142 @@
     function setPendingGameReward(val) {
       localStorage.setItem(STORAGE_KEYS.pendingGameReward, String(Math.max(0, Math.floor(val))));
       updateGameRewardUI();
+    }
+
+    function bytesToHex(bytes) {
+      let out = "";
+      for (let i = 0; i < bytes.length; i++) {
+        out += bytes[i].toString(16).padStart(2, "0");
+      }
+      return out;
+    }
+
+    function normalizeErrorMessage(err) {
+      if (!err) return "Unknown error";
+      if (typeof err === "string") return err;
+      if (err.shortMessage) return String(err.shortMessage);
+      if (err.message) return String(err.message);
+      try {
+        return JSON.stringify(err);
+      } catch (_) {
+        return "Unknown error";
+      }
+    }
+
+    function sleep(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    async function getPaymasterUrl() {
+      if (resolvedPaymasterUrl) return resolvedPaymasterUrl;
+      const meta = document.querySelector('meta[name="base:paymaster_url"]');
+      const value = meta && meta.getAttribute("content") ? meta.getAttribute("content").trim() : "";
+      if (value) {
+        resolvedPaymasterUrl = value;
+        return resolvedPaymasterUrl;
+      }
+
+      // Fallback: ask backend for the configured paymaster URL.
+      try {
+        const res = await fetch("/api/paymaster-url", { method: "GET", cache: "no-store" });
+        if (res.ok) {
+          const data = await res.json();
+          if (data && typeof data.paymasterUrl === "string" && data.paymasterUrl.trim()) {
+            resolvedPaymasterUrl = data.paymasterUrl.trim();
+            if (meta) meta.setAttribute("content", resolvedPaymasterUrl);
+            return resolvedPaymasterUrl;
+          }
+        }
+      } catch (_) {
+        // Ignore and fall through to empty value.
+      }
+
+      return "";
+    }
+
+    function getInjectedProvider() {
+      const own = window.ethereum;
+      if (own && typeof own.request === "function") return own;
+      try {
+        const parentEth = window.parent && window.parent !== window ? window.parent.ethereum : null;
+        if (parentEth && typeof parentEth.request === "function") return parentEth;
+      } catch (_) {
+        // Access to parent can fail in some sandboxed contexts.
+      }
+      return null;
+    }
+
+    async function ensureBaseMainnet(provider) {
+      const baseHex = "0x2105"; // Base mainnet (8453)
+      const current = await provider.request({ method: "eth_chainId" });
+      if (String(current).toLowerCase() === baseHex) return;
+      await provider.request({
+        method: "wallet_switchEthereumChain",
+        params: [{ chainId: baseHex }]
+      });
+    }
+
+    async function waitForCallConfirmation(provider, callId) {
+      for (let i = 0; i < 28; i++) {
+        const status = await provider.request({
+          method: "wallet_getCallsStatus",
+          params: [callId]
+        });
+        const state = status && status.status ? String(status.status).toLowerCase() : "";
+        if (state === "confirmed" || state === "success") {
+          const firstReceipt = status.receipts && status.receipts[0] ? status.receipts[0] : null;
+          return firstReceipt && firstReceipt.transactionHash ? firstReceipt.transactionHash : null;
+        }
+        if (state === "failed" || state === "reverted") {
+          throw new Error("Transaction was reverted on Base mainnet.");
+        }
+        await sleep(1100);
+      }
+      throw new Error("Transaction confirmation timeout.");
+    }
+
+    async function sendFreeClaimTransaction(claimType, rewardAmount) {
+      const provider = getInjectedProvider();
+      if (!provider) {
+        throw new Error("Wallet provider not found. Open the game inside Base app.");
+      }
+
+      const paymasterUrl = await getPaymasterUrl();
+      if (!paymasterUrl) {
+        throw new Error("Paymaster URL is not configured. Free Base transactions are disabled.");
+      }
+
+      const accounts = await provider.request({ method: "eth_requestAccounts" });
+      const from = Array.isArray(accounts) && accounts.length ? accounts[0] : null;
+      if (!from) {
+        throw new Error("No wallet account available.");
+      }
+
+      await ensureBaseMainnet(provider);
+
+      const payload = "gdz|" + claimType + "|" + rewardAmount + "|" + Date.now();
+      const data = "0x" + bytesToHex(new TextEncoder().encode(payload));
+
+      const callId = await provider.request({
+        method: "wallet_sendCalls",
+        params: [{
+          version: "2.0.0",
+          chainId: "0x2105",
+          from,
+          calls: [{ to: from, value: "0x0", data }],
+          capabilities: {
+            paymasterService: {
+              url: paymasterUrl
+            }
+          }
+        }]
+      });
+
+      if (!callId) {
+        throw new Error("wallet_sendCalls did not return a call ID.");
+      }
+
+      return waitForCallConfirmation(provider, callId);
     }
 
     function getLeaderboard() {
@@ -863,28 +1005,48 @@
       return { canClaim, bonus, streak };
     }
 
-    function claimStreakBonus() {
+    async function claimStreakBonus() {
       const status = getStreakBonusStatus();
       if (!status.canClaim) {
         showPopup("Streak bonus is not available right now.", 1600);
         return;
       }
+      if (claimTxPending.streak) return;
 
-      const todayKey = formatDateKey(new Date());
-      addBalance(status.bonus);
-      localStorage.setItem(STORAGE_KEYS.streakClaimDate, todayKey);
-      showPopup("Streak bonus claimed! +" + status.bonus + " coins", 2200);
-      spawnCoinRain(10);
-      refreshBalanceUI();
+      claimTxPending.streak = true;
       updateStreakBonusUI();
+      showPopup("Confirm free Base transaction for streak bonus...", 2600);
+
+      try {
+        const txHash = await sendFreeClaimTransaction("streak_bonus", status.bonus);
+        const todayKey = formatDateKey(new Date());
+        addBalance(status.bonus);
+        localStorage.setItem(STORAGE_KEYS.streakClaimDate, todayKey);
+        showPopup("Streak bonus claimed on Base! +" + status.bonus + " coins", 2200);
+        if (txHash) {
+          showPopup("Base tx: " + txHash.slice(0, 10) + "..." + txHash.slice(-8), 2600);
+        }
+        spawnCoinRain(10);
+        refreshBalanceUI();
+      } catch (err) {
+        showPopup("Free Base transaction failed: " + normalizeErrorMessage(err), 3600);
+      } finally {
+        claimTxPending.streak = false;
+        updateStreakBonusUI();
+      }
     }
 
     function updateStreakBonusUI() {
       const status = getStreakBonusStatus();
-      streakClaimBtn.disabled = !status.canClaim;
+      streakClaimBtn.disabled = !status.canClaim || claimTxPending.streak;
+      if (claimTxPending.streak) {
+        streakClaimBtn.textContent = "Confirming Base Transaction...";
+        streakClaimHint.textContent = "Approve in wallet and wait for Base confirmation.";
+        return;
+      }
       if (status.canClaim) {
         streakClaimBtn.textContent = "Claim Streak Bonus (+" + status.bonus + ")";
-        streakClaimHint.textContent = "Streak day " + status.streak + " bonus ready.";
+        streakClaimHint.textContent = "Streak day " + status.streak + " bonus ready (free Base tx).";
       } else if (status.streak < 2) {
         streakClaimBtn.textContent = "Claim Streak Bonus";
         streakClaimHint.textContent = "Reach day 2 streak to unlock.";
@@ -894,26 +1056,47 @@
       }
     }
 
-    function claimGameReward() {
+    async function claimGameReward() {
       const reward = getPendingGameReward();
       if (reward <= 0) {
         showPopup("No game reward available yet.", 1600);
         return;
       }
+      if (claimTxPending.game) return;
 
-      addBalance(reward);
-      setPendingGameReward(0);
-      showPopup("Game reward claimed! +" + reward + " coins", 2200);
-      spawnCoinRain(10);
-      refreshBalanceUI();
+      claimTxPending.game = true;
+      updateGameRewardUI();
+      showPopup("Confirm free Base transaction for game reward...", 2600);
+
+      try {
+        const txHash = await sendFreeClaimTransaction("game_reward", reward);
+        addBalance(reward);
+        setPendingGameReward(0);
+        showPopup("Game reward claimed on Base! +" + reward + " coins", 2200);
+        if (txHash) {
+          showPopup("Base tx: " + txHash.slice(0, 10) + "..." + txHash.slice(-8), 2600);
+        }
+        spawnCoinRain(10);
+        refreshBalanceUI();
+      } catch (err) {
+        showPopup("Free Base transaction failed: " + normalizeErrorMessage(err), 3600);
+      } finally {
+        claimTxPending.game = false;
+        updateGameRewardUI();
+      }
     }
 
     function updateGameRewardUI() {
       const reward = getPendingGameReward();
-      gameRewardBtn.disabled = reward <= 0;
+      gameRewardBtn.disabled = reward <= 0 || claimTxPending.game;
+      if (claimTxPending.game) {
+        gameRewardBtn.textContent = "Confirming Base Transaction...";
+        gameRewardHint.textContent = "Approve in wallet and wait for Base confirmation.";
+        return;
+      }
       if (reward > 0) {
         gameRewardBtn.textContent = "Claim Game Reward (+" + reward + ")";
-        gameRewardHint.textContent = "Reward ready from your last run.";
+        gameRewardHint.textContent = "Reward ready from your last run (free Base tx).";
       } else {
         gameRewardBtn.textContent = "Claim Game Reward";
         gameRewardHint.textContent = "Finish a run to unlock.";

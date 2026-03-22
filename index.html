@@ -6,13 +6,13 @@
   <title>Konnex Mint Countdown</title>
   <style>
     :root {
-      --bg: #050505;
-      --panel: rgba(0, 0, 0, 0);
+      --bg: #ffffff;
+      --panel: rgba(255, 255, 255, 0.86);
       --line: rgba(131, 245, 255, 1);
       --text: #000000;
-      --muted: #111111;
+      --muted: #000000;
       --danger: #000000;
-      --glow: 0 0 20px rgba(131, 245, 255, 0.9);
+      --glow: none;
     }
 
     * { box-sizing: border-box; }
@@ -39,7 +39,7 @@
       inset: 0;
       z-index: 0;
       overflow: hidden;
-      background: #000;
+      background: #ffffff;
     }
 
     .bg-media {
@@ -59,13 +59,13 @@
       height: 100%;
       object-fit: contain;
       display: block;
-      filter: brightness(1.65) contrast(1.25) saturate(1.3) drop-shadow(0 0 34px rgba(255, 255, 255, 0.62));
+      filter: brightness(1.2) contrast(1.05) saturate(1.1) opacity(0.42);
     }
 
     .bg-fade {
       position: absolute;
       inset: 0;
-      background: radial-gradient(circle at center, rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.08) 72%);
+      background: radial-gradient(circle at center, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0.36) 72%);
     }
 
     @keyframes spin {
@@ -81,7 +81,7 @@
       border-radius: 16px;
       background: var(--panel);
       backdrop-filter: none;
-      box-shadow: 0 0 34px rgba(131, 245, 255, 0.75), inset 0 0 18px rgba(131, 245, 255, 0.22);
+      box-shadow: 0 0 22px rgba(131, 245, 255, 0.38), inset 0 0 10px rgba(131, 245, 255, 0.12);
       padding: 24px 22px;
       text-align: center;
     }
@@ -112,7 +112,7 @@
       border: 3px solid rgba(131, 245, 255, 1);
       border-radius: 12px;
       padding: 14px 12px;
-      background: rgba(0, 0, 0, 0);
+      background: rgba(255, 255, 255, 0.88);
       font-family: "Courier New", Courier, monospace;
       font-size: clamp(24px, 5.8vw, 58px);
       font-weight: 700;
@@ -120,7 +120,7 @@
       text-shadow: var(--glow);
       line-height: 1.15;
       transition: transform 0.18s ease, color 0.2s ease;
-      box-shadow: 0 0 28px rgba(131, 245, 255, 0.78), inset 0 0 14px rgba(131, 245, 255, 0.2);
+      box-shadow: 0 0 20px rgba(131, 245, 255, 0.38), inset 0 0 8px rgba(131, 245, 255, 0.1);
     }
 
     .timer.tick { transform: scale(1.015); }
@@ -163,7 +163,7 @@
     .small {
       margin-top: 10px;
       font-size: 12px;
-      color: #aaaaaa;
+      color: #000000;
     }
   </style>
 </head>
@@ -206,8 +206,8 @@
     "use strict";
 
     // Event end: 23 Mar 2026, 6:00 PM at GMT+4 (fixed global moment).
-    // Using explicit timezone keeps the same end moment for every country.
-    const END_DATE_UTC_MS = new Date("2026-03-23T18:00:00+04:00").getTime();
+    // 18:00 GMT+4 equals 14:00 UTC.
+    const END_DATE_UTC_MS = Date.UTC(2026, 2, 23, 14, 0, 0);
 
     const timerEl = document.getElementById("timer");
     const statusEl = document.getElementById("statusText");

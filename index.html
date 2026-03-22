@@ -49,7 +49,7 @@
       width: min(88vmin, 680px);
       height: min(88vmin, 680px);
       transform: translate(-50%, -50%);
-      background-image: url("./public/konnex-background.gif"), url("./public/dragon-head-logo.png");
+      background-image: url("./public/konnex-background.gif"), url("./public/konnex-background.png"), url("./public/dragon-head-logo.png");
       background-position: center;
       background-repeat: no-repeat;
       background-size: contain;
@@ -173,7 +173,7 @@
   <main class="page">
     <p class="live">● LIVE COUNTDOWN</p>
     <h1>KONNEX MINT ENDS SOON</h1>
-    <p class="sub">Обратный отсчет до завершения минта коллекции Konnex Autonomous Units.</p>
+    <p class="sub">Live countdown until the Konnex Autonomous Units mint event ends.</p>
 
     <div class="timer" id="timer">--:--:--:--</div>
     <div class="labels">
@@ -183,7 +183,7 @@
       <span>Seconds</span>
     </div>
 
-    <p class="info" id="statusText">До окончания события осталось совсем немного времени.</p>
+    <p class="info" id="statusText">Only a short time remains before the event ends.</p>
 
     <a
       id="mintLink"
@@ -195,9 +195,7 @@
       OPEN MINT PAGE
     </a>
 
-    <div class="small">
-      Для фона добавьте GIF: `public/konnex-background.gif`.
-    </div>
+    <div class="small">Background media loads from <code>public/konnex-background.gif</code>.</div>
   </main>
 
   <script>
@@ -236,7 +234,7 @@
       if (distance <= 0) {
         timerEl.textContent = "00:00:00:00";
         timerEl.style.color = "#ff6767";
-        statusEl.textContent = "Mint завершен.";
+        statusEl.textContent = "Mint is closed.";
         mintLinkEl.textContent = "VIEW COLLECTION";
         return false;
       }

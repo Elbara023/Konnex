@@ -7,8 +7,8 @@
   <style>
     :root {
       --bg: #050505;
-      --panel: rgba(8, 8, 8, 0.48);
-      --line: rgba(255, 255, 255, 0.2);
+      --panel: rgba(8, 8, 8, 0.18);
+      --line: rgba(255, 255, 255, 0.32);
       --text: #f4f4f4;
       --muted: #bdbdbd;
       --danger: #ff6767;
@@ -59,13 +59,13 @@
       height: 100%;
       object-fit: contain;
       display: block;
-      filter: brightness(1.2) contrast(1.08) saturate(1.1) drop-shadow(0 0 20px rgba(255, 255, 255, 0.45));
+      filter: brightness(1.45) contrast(1.18) saturate(1.2) drop-shadow(0 0 24px rgba(255, 255, 255, 0.52));
     }
 
     .bg-fade {
       position: absolute;
       inset: 0;
-      background: radial-gradient(circle at center, rgba(0, 0, 0, 0.06), rgba(0, 0, 0, 0.35) 72%);
+      background: radial-gradient(circle at center, rgba(0, 0, 0, 0.01), rgba(0, 0, 0, 0.16) 72%);
     }
 
     @keyframes spin {
@@ -112,7 +112,7 @@
       border: 1px solid rgba(131, 245, 255, 0.35);
       border-radius: 12px;
       padding: 14px 12px;
-      background: rgba(0, 0, 0, 0.55);
+      background: rgba(0, 0, 0, 0.18);
       font-family: "Courier New", Courier, monospace;
       font-size: clamp(24px, 5.8vw, 58px);
       font-weight: 700;

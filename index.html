@@ -39,19 +39,21 @@
       inset: 0;
       z-index: 0;
       overflow: hidden;
-      background: #ffffff;
+      background: #000000;
+      perspective: 1200px;
     }
 
     .bg-media {
       position: absolute;
       left: 50%;
       top: 50%;
-      width: min(88vmin, 680px);
-      height: min(88vmin, 680px);
-      transform: translate(-50%, -50%) rotate(0deg);
+      width: min(96vw, 960px);
+      height: min(52vmin, 420px);
+      transform: translate(-50%, -50%) rotateY(0deg);
       opacity: 1;
-      animation: spin 7.5s linear infinite;
+      animation: spinHorizontal 20s linear infinite;
       pointer-events: none;
+      transform-style: preserve-3d;
     }
 
     .bg-media img {
@@ -59,18 +61,18 @@
       height: 100%;
       object-fit: contain;
       display: block;
-      filter: brightness(1.2) contrast(1.05) saturate(1.1) opacity(0.42);
+      filter: brightness(1.15) contrast(1.1) saturate(1.12) opacity(0.58);
     }
 
     .bg-fade {
       position: absolute;
       inset: 0;
-      background: radial-gradient(circle at center, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0.36) 72%);
+      background: radial-gradient(circle at center, rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.36) 72%);
     }
 
-    @keyframes spin {
-      from { transform: translate(-50%, -50%) rotate(0deg); }
-      to { transform: translate(-50%, -50%) rotate(360deg); }
+    @keyframes spinHorizontal {
+      from { transform: translate(-50%, -50%) rotateY(0deg); }
+      to { transform: translate(-50%, -50%) rotateY(360deg); }
     }
 
     .page {

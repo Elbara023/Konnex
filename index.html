@@ -7,7 +7,7 @@
   <style>
     :root {
       --bg: #050505;
-      --panel: rgba(8, 8, 8, 0.62);
+      --panel: rgba(8, 8, 8, 0.48);
       --line: rgba(255, 255, 255, 0.2);
       --text: #f4f4f4;
       --muted: #bdbdbd;
@@ -49,7 +49,7 @@
       width: min(88vmin, 680px);
       height: min(88vmin, 680px);
       transform: translate(-50%, -50%) rotate(0deg);
-      opacity: 0.88;
+      opacity: 1;
       animation: spin 7.5s linear infinite;
       pointer-events: none;
     }
@@ -59,13 +59,13 @@
       height: 100%;
       object-fit: contain;
       display: block;
-      filter: drop-shadow(0 0 18px rgba(255, 255, 255, 0.35));
+      filter: brightness(1.2) contrast(1.08) saturate(1.1) drop-shadow(0 0 20px rgba(255, 255, 255, 0.45));
     }
 
     .bg-fade {
       position: absolute;
       inset: 0;
-      background: radial-gradient(circle at center, rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.65) 75%);
+      background: radial-gradient(circle at center, rgba(0, 0, 0, 0.06), rgba(0, 0, 0, 0.35) 72%);
     }
 
     @keyframes spin {

@@ -48,21 +48,24 @@
       top: 50%;
       width: min(88vmin, 680px);
       height: min(88vmin, 680px);
-      transform: translate(-50%, -50%);
-      background-image: url("./public/konnex-background.gif");
-      background-position: center;
-      background-repeat: no-repeat;
-      background-size: contain;
-      opacity: 0.62;
-      animation: spin 26s linear infinite;
+      transform: translate(-50%, -50%) rotate(0deg);
+      opacity: 0.88;
+      animation: spin 7.5s linear infinite;
+      pointer-events: none;
+    }
+
+    .bg-media img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: block;
+      filter: drop-shadow(0 0 18px rgba(255, 255, 255, 0.35));
     }
 
     .bg-fade {
       position: absolute;
       inset: 0;
-      background:
-        radial-gradient(circle at center, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.84) 70%),
-        linear-gradient(180deg, rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.8));
+      background: radial-gradient(circle at center, rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.65) 75%);
     }
 
     @keyframes spin {
@@ -165,7 +168,9 @@
 </head>
 <body>
   <div class="bg-wrap" aria-hidden="true">
-    <div class="bg-media"></div>
+    <div class="bg-media">
+      <img src="./public/konnex-background.gif" alt="" />
+    </div>
     <div class="bg-fade"></div>
   </div>
 

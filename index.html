@@ -2,6 +2,288 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Konnex Mint Countdown</title>
+  <style>
+    :root {
+      --bg: #050505;
+      --panel: rgba(8, 8, 8, 0.62);
+      --line: rgba(255, 255, 255, 0.2);
+      --text: #f4f4f4;
+      --muted: #bdbdbd;
+      --accent: #83f5ff;
+      --danger: #ff6767;
+      --glow: 0 0 16px rgba(131, 245, 255, 0.65);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      margin: 0;
+      width: 100%;
+      min-height: 100%;
+      font-family: Arial, Helvetica, sans-serif;
+      color: var(--text);
+      background: var(--bg);
+    }
+
+    body {
+      position: relative;
+      overflow: hidden;
+      display: grid;
+      place-items: center;
+      padding: 18px;
+    }
+
+    .bg-wrap {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      overflow: hidden;
+      background: #000;
+    }
+
+    .bg-media {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: min(88vmin, 680px);
+      height: min(88vmin, 680px);
+      transform: translate(-50%, -50%);
+      background-image: url("/konnex-background.gif"), url("/dragon-head-logo.png");
+      background-position: center;
+      background-repeat: no-repeat;
+      background-size: contain;
+      opacity: 0.33;
+      filter: grayscale(0.15) contrast(1.05);
+      animation: spin 26s linear infinite;
+    }
+
+    .bg-fade {
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(circle at center, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.84) 70%),
+        linear-gradient(180deg, rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.8));
+    }
+
+    @keyframes spin {
+      from { transform: translate(-50%, -50%) rotate(0deg); }
+      to { transform: translate(-50%, -50%) rotate(360deg); }
+    }
+
+    .page {
+      position: relative;
+      z-index: 1;
+      width: min(100%, 760px);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: var(--panel);
+      backdrop-filter: blur(8px);
+      box-shadow: 0 18px 48px rgba(0, 0, 0, 0.45);
+      padding: 24px 22px;
+      text-align: center;
+    }
+
+    .live {
+      margin: 0 0 10px;
+      color: var(--danger);
+      font-size: 12px;
+      letter-spacing: 1.4px;
+      text-transform: uppercase;
+      font-weight: 700;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(28px, 5vw, 44px);
+      letter-spacing: 1px;
+    }
+
+    .sub {
+      margin: 12px 0 18px;
+      color: var(--muted);
+      font-size: clamp(14px, 2.5vw, 18px);
+    }
+
+    .timer {
+      margin: 8px auto 14px;
+      border: 1px solid rgba(131, 245, 255, 0.35);
+      border-radius: 12px;
+      padding: 14px 12px;
+      background: rgba(0, 0, 0, 0.55);
+      font-family: "Courier New", Courier, monospace;
+      font-size: clamp(24px, 5.8vw, 58px);
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-shadow: var(--glow);
+      line-height: 1.15;
+      transition: transform 0.18s ease, color 0.2s ease;
+    }
+
+    .timer.tick {
+      transform: scale(1.015);
+    }
+
+    .labels {
+      margin: 0 0 18px;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      color: var(--muted);
+      font-size: 12px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    .info {
+      margin: 0 0 12px;
+      font-size: 14px;
+      color: #f0c9c9;
+    }
+
+    .cta {
+      display: inline-block;
+      margin-top: 6px;
+      text-decoration: none;
+      font-weight: 700;
+      font-size: 16px;
+      padding: 14px 18px;
+      border-radius: 11px;
+      color: #030507;
+      background: linear-gradient(90deg, #83f5ff, #b5a6ff);
+      transition: transform 0.16s ease, box-shadow 0.16s ease;
+    }
+
+    .cta:hover {
+      transform: translateY(-1px) scale(1.02);
+      box-shadow: 0 0 22px rgba(131, 245, 255, 0.7);
+    }
+
+    .small {
+      margin-top: 10px;
+      font-size: 12px;
+      color: #aaaaaa;
+    }
+
+    @media (max-width: 520px) {
+      .page {
+        padding: 18px 14px;
+      }
+
+      .labels {
+        font-size: 10px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-wrap" aria-hidden="true">
+    <div class="bg-media"></div>
+    <div class="bg-fade"></div>
+  </div>
+
+  <main class="page">
+    <p class="live">● LIVE COUNTDOWN</p>
+    <h1>KONNEX MINT ENDS SOON</h1>
+    <p class="sub">Обратный отсчет до завершения минта коллекции Konnex Autonomous Units.</p>
+
+    <div class="timer" id="timer">--:--:--:--</div>
+    <div class="labels">
+      <span>Days</span>
+      <span>Hours</span>
+      <span>Minutes</span>
+      <span>Seconds</span>
+    </div>
+
+    <p class="info" id="statusText">До окончания события осталось совсем немного времени.</p>
+
+    <a
+      id="mintLink"
+      class="cta"
+      href="https://opensea.io/collection/konnex-autonomous-units"
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      OPEN MINT PAGE
+    </a>
+
+    <div class="small">
+      Если ваш GIF не отображается, добавьте файл в `public/konnex-background.gif`.
+    </div>
+  </main>
+
+  <script>
+    "use strict";
+
+    // End date set to 23 March 2026, 23:59:59 (UTC+03:00).
+    const END_DATE = new Date("2026-03-23T23:59:59+03:00").getTime();
+
+    const timerEl = document.getElementById("timer");
+    const statusEl = document.getElementById("statusText");
+    const mintLinkEl = document.getElementById("mintLink");
+
+    function pad(value) {
+      return String(value).padStart(2, "0");
+    }
+
+    function formatLeft(msLeft) {
+      const totalSec = Math.max(0, Math.floor(msLeft / 1000));
+      const days = Math.floor(totalSec / 86400);
+      const hours = Math.floor((totalSec % 86400) / 3600);
+      const minutes = Math.floor((totalSec % 3600) / 60);
+      const seconds = totalSec % 60;
+      return {
+        days: pad(days),
+        hours: pad(hours),
+        minutes: pad(minutes),
+        seconds: pad(seconds)
+      };
+    }
+
+    function updateCountdown() {
+      const now = Date.now();
+      const distance = END_DATE - now;
+      const left = formatLeft(distance);
+
+      timerEl.classList.remove("tick");
+      // Force reflow to replay the tick animation every second.
+      void timerEl.offsetWidth;
+      timerEl.classList.add("tick");
+
+      timerEl.textContent = left.days + ":" + left.hours + ":" + left.minutes + ":" + left.seconds;
+
+      if (distance <= 0) {
+        timerEl.textContent = "00:00:00:00";
+        timerEl.style.color = "#ff6767";
+        statusEl.textContent = "Mint завершен.";
+        mintLinkEl.textContent = "VIEW COLLECTION";
+        return false;
+      }
+
+      if (distance < 3600000) {
+        timerEl.style.color = "#ff8a8a";
+      } else {
+        timerEl.style.color = "#f4f4f4";
+      }
+      return true;
+    }
+
+    const intervalId = setInterval(() => {
+      const active = updateCountdown();
+      if (!active) clearInterval(intervalId);
+    }, 1000);
+
+    updateCountdown();
+  </script>
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="base:app_id" content="69a19452991116aebf36cab4" />
   <meta name="base:paymaster_url" content="" />
@@ -876,7 +1158,11 @@
           }]
         });
       } catch (err) {
+        const code = err && typeof err === "object" && "code" in err ? Number(err.code) : NaN;
         const message = normalizeErrorMessage(err).toLowerCase();
+        if (code === -32002 || message.includes("-32002") || message.includes("request denied")) {
+          throw new Error("Paymaster policy denied sponsorship (-32002). Check CDP allowlist and gas policy.");
+        }
         if (message.includes("wallet_sendcalls") || message.includes("method not found")) {
           throw new Error("Your wallet build does not support free transaction calls yet.");
         }

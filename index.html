@@ -7,12 +7,12 @@
   <style>
     :root {
       --bg: #050505;
-      --panel: rgba(0, 0, 0, 0.02);
-      --line: rgba(131, 245, 255, 0.9);
-      --text: #f4f4f4;
-      --muted: #bdbdbd;
-      --danger: #ff6767;
-      --glow: 0 0 16px rgba(131, 245, 255, 0.65);
+      --panel: rgba(0, 0, 0, 0);
+      --line: rgba(131, 245, 255, 1);
+      --text: #000000;
+      --muted: #111111;
+      --danger: #000000;
+      --glow: 0 0 20px rgba(131, 245, 255, 0.9);
     }
 
     * { box-sizing: border-box; }
@@ -59,13 +59,13 @@
       height: 100%;
       object-fit: contain;
       display: block;
-      filter: brightness(1.45) contrast(1.18) saturate(1.2) drop-shadow(0 0 24px rgba(255, 255, 255, 0.52));
+      filter: brightness(1.65) contrast(1.25) saturate(1.3) drop-shadow(0 0 34px rgba(255, 255, 255, 0.62));
     }
 
     .bg-fade {
       position: absolute;
       inset: 0;
-      background: radial-gradient(circle at center, rgba(0, 0, 0, 0.01), rgba(0, 0, 0, 0.16) 72%);
+      background: radial-gradient(circle at center, rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.08) 72%);
     }
 
     @keyframes spin {
@@ -77,11 +77,11 @@
       position: relative;
       z-index: 1;
       width: min(100%, 760px);
-      border: 2px solid var(--line);
+      border: 3px solid var(--line);
       border-radius: 16px;
       background: var(--panel);
       backdrop-filter: none;
-      box-shadow: 0 0 22px rgba(131, 245, 255, 0.55);
+      box-shadow: 0 0 34px rgba(131, 245, 255, 0.75), inset 0 0 18px rgba(131, 245, 255, 0.22);
       padding: 24px 22px;
       text-align: center;
     }
@@ -109,7 +109,7 @@
 
     .timer {
       margin: 8px auto 14px;
-      border: 2px solid rgba(131, 245, 255, 0.95);
+      border: 3px solid rgba(131, 245, 255, 1);
       border-radius: 12px;
       padding: 14px 12px;
       background: rgba(0, 0, 0, 0);
@@ -120,7 +120,7 @@
       text-shadow: var(--glow);
       line-height: 1.15;
       transition: transform 0.18s ease, color 0.2s ease;
-      box-shadow: 0 0 18px rgba(131, 245, 255, 0.5);
+      box-shadow: 0 0 28px rgba(131, 245, 255, 0.78), inset 0 0 14px rgba(131, 245, 255, 0.2);
     }
 
     .timer.tick { transform: scale(1.015); }
@@ -139,7 +139,7 @@
     .info {
       margin: 0 0 12px;
       font-size: 14px;
-      color: #f0c9c9;
+      color: #000000;
     }
 
     .cta {
@@ -205,9 +205,9 @@
   <script>
     "use strict";
 
-    // 23 Mar 2026 23:59:59 at UTC+03:00 -> absolute UTC timestamp.
-    // Using fixed UTC milliseconds keeps the same end moment for every country.
-    const END_DATE_UTC_MS = Date.UTC(2026, 2, 23, 20, 59, 59);
+    // Event end: 23 Mar 2026, 6:00 PM at GMT+4 (fixed global moment).
+    // Using explicit timezone keeps the same end moment for every country.
+    const END_DATE_UTC_MS = new Date("2026-03-23T18:00:00+04:00").getTime();
 
     const timerEl = document.getElementById("timer");
     const statusEl = document.getElementById("statusText");
@@ -237,13 +237,13 @@
 
       if (distance <= 0) {
         timerEl.textContent = "00:00:00:00";
-        timerEl.style.color = "#ff6767";
+        timerEl.style.color = "#000000";
         statusEl.textContent = "Mint is closed.";
         mintLinkEl.textContent = "VIEW COLLECTION";
         return false;
       }
 
-      timerEl.style.color = distance < 3600000 ? "#ff8a8a" : "#f4f4f4";
+      timerEl.style.color = "#000000";
       return true;
     }
 
